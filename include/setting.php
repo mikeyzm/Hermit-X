@@ -106,7 +106,7 @@
 				</td>
 			</tr>
 			<tr valign="top">
-				<th scope="row"><label>网易云音质</label></th>
+				<th scope="row"><label>音质</label></th>
 				<td>
 					<?php $quality_array = array(
                         '320' =>  '极高 (320kbit/s)',
@@ -166,14 +166,23 @@
 				</td>
 			</tr>
 			<tr valign="top">
+				<th scope="row"><label>网易云音乐 COOKIES</label></th>
+				<td>
+					<p><input type="text" class="regular-text" name="hermit_setting[netease_cookies]"
+					          value="<?php echo $this->settings('netease_cookies'); ?>"/></p>
+
+					<p class="description">如需播放网易云音乐付费歌曲类特殊曲目，请将有权限的网易云音乐帐号（如 VIP 帐号）COOKIES 填入，建议使用手机 APP COOKIES。<br>如您不理解该选项有何意义或是如何使用，请忽略。&nbsp;*请注意，使用网页版 COOKIES 将无法获取 HTTPS 歌曲 URL。</p>
+				</td>
+			</tr>
+			<!-- <tr valign="top">
 				<th scope="row"><label>浏览器缓存时间</label></th>
 				<td>
 					<p><input type="text" class="small-text" name="hermit_setting[remainTime]"
-					          value="<?php echo $this->settings('remainTime'); ?>"/>小时</p>
+					          value="<?php/* echo $this->settings('remainTime'); */?>"/>小时</p>
 
 					<p class="description">默认数量：10小时，最大不宜超过48小时。</p>
 				</td>
-			</tr>
+			</tr> -->
 			<tr valign="top">
 				<th scope="row"><label>播放列表最大高度</label></th>
 				<td>
@@ -183,43 +192,30 @@
 					<p class="description">限制播放列表的最大高度，0为不限制。</p>
 				</td>
 			</tr>
-			<tr valign="top">
+			<!-- <tr valign="top">
 				<th scope="row"><label>服务器地域</label></th>
 				<td>
 					<p><label><input type="checkbox" name="hermit_setting[within_China]" disabled="true"
-					          value="1" <?php if ($this->settings('within_China') == 1) {
+					          value="1" <?php /*if ($this->settings('within_China') == 1) {
                         echo 'checked="checked"';
-                    } ?>/>
+                    } */?>/>
 						<span>服务器位于中国境内</span></label></p>
 
 					<p class="description">此选项由 LWL API 自动控制，当检查到服务器不在中国境内时，将自动使用 LWL API 接管部分音乐信息解析操作以保证正常播放。</p>
 				</td>
-			</tr>
+			</tr> -->
 			<tr>
 				<th scope="row"><label>新建权限</label></th>
 				<td>
-					<?php
-                    $role_array = array(
-                        'subscriber'    => '订阅者',
-                        'author'        => '作者',
-                        'contributor'   => '投稿者',
-                        'editor'        => '编辑',
-                        'administrator' => '管理员'
-                    );
-
-                    foreach ($role_array as $key => $val) {
+					<?php foreach (get_editable_roles() as $role => $details) {
                         ?>
 						<label title="开启调试信息">
 							<input type="checkbox" name="hermit_setting[roles][]"
-							       value="<?php echo $key; ?>" <?php if (in_array($key, $this->settings('roles'))) {
-                            echo 'checked="checked"';
-                        } ?>/>
-							<span><?php echo $val; ?></span>
+							       value="<?php echo esc_attr($role); ?>" <?php checked(in_array(esc_attr($role), $this->settings('roles'))); ?> />
+							<span><?php echo translate_user_role($details['name']); ?></span>
 						</label>
 					<?php
-
-                    }
-                    ?>
+                    } ?>
 					<p class="description">默认：<strong>管理员权限</strong> 才可以在新建或编辑文章时添加音乐</p>
 				</td>
 			</tr>

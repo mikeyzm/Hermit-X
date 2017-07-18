@@ -23,23 +23,27 @@ class HermitJson
             exit;
         }
         $Meting = new \Metowolf\Meting($site);
-        $i = ($site !== "netease") ? 1 : -1;
-        while(substr($url, 0, 10) !== 'https://m8' && ($i++ < 2)){
-            $url = json_decode($Meting->format()->url($music_id, $this->settings('quality')), true);
-            $url = $url['url'];
-            if (empty($url)) {
-                if ($this->settings('within_China')) {
-                    Header("Location: " . 'https://api.lwl12.com/music/netease/song?id=607441');
-                } else {
-                    Header("Location: " . "https://api.lwl12.com/music/$site/song?id=" . $music_id);
-                }
-                exit;
-            }
-        }
-        if($i > 0 && $site === "netease") Header("X-Hermit-Retrys: $i");
 
-        if($site === "netease") $url = str_replace('http://m7', 'https://m8', $url);
-        if($site === "xiami") $url = str_replace('http://', 'https://', $url);
+        $cookies = $this->settings('netease_cookies');
+        if (!empty($cookies) && $site === "netease") {
+            $Meting->cookie($cookies);
+        }
+
+        $url = json_decode($Meting->format()->url($music_id, $this->settings('quality')), true);
+        $url = $url['url'];
+
+        if (empty($url)) {
+            Header("Location: " . 'https://api.lwl12.com/music/netease/song?id=607441');
+            exit;
+        }
+
+        if ($site === "netease") {
+            $url = str_replace('http://m7', 'http://m8', $url);
+            $url = str_replace('http://m8', 'https://m8', $url);
+        }
+        if ($site === "xiami" || $site === 'tencent' || $site === 'baidu') {
+            $url = str_replace('http://', 'https://', $url);
+        }
 
         $this->set_cache($cacheKey, $url, 0.25);
         Header("Location: " . $url);
@@ -57,13 +61,16 @@ class HermitJson
         }
         $Meting = new \Metowolf\Meting($site);
 
-        $pic = json_decode($Meting->pic($pic), true);
+        $pic = json_decode($Meting->pic($pic, 100), true);
         if (empty($pic["url"])) {
             $return = array(
                 'code' => 501,
                 'msg' => 'Invalid song or Music site server error'
             );
             exit(json_encode($return));
+        }
+        if ($site === 'netease' || $site === "xiami" || $site === 'tencent') {
+            $pic['url'] = str_replace('http://', 'https://', $pic['url']);
         }
         $this->set_cache($cacheKey, $pic["url"], 168);
         Header("Location: " . $pic["url"]);
@@ -72,7 +79,6 @@ class HermitJson
 
     public function id_parse($site, $src)
     {
-
         foreach ($src as $key => $value) {
             $cacheKey = "/$site/idparse/$value";
             $cache    = $this->get_cache($cacheKey);
@@ -127,7 +133,7 @@ class HermitJson
 
         $cache = $this->get_cache($cache_key);
         if ($cache) {
-            return $cache;
+            return $this->addNonce($cache, $site, true);
         }
 
         $response = json_decode($Meting->format()->song($music_id), true);
@@ -141,7 +147,7 @@ class HermitJson
                 if (empty($pic["url"])) {
                     $cover = null;
                 } else {
-                    $cover = $pic["url"];
+                     $cover = $pic["url"];
                 }
             } else {
                 $cover      = admin_url() . "admin-ajax.php" . "?action=hermit&scope=" . $site . "_pic_url&picid=" . $response[0]['pic_id'] . '&id=' . $music_id;
@@ -158,9 +164,9 @@ class HermitJson
                 "lrc" => "https://api.lwl12.com/music/$site/lyric?raw=true&id=" . $music_id
             );
 
-            $this->set_cache($cache_key, $result, 24);
+            $this->set_cache($cache_key, $result, 23);
 
-            return $result;
+            return $this->addNonce($result, $site, true);
         }
 
         return false;
@@ -193,7 +199,7 @@ class HermitJson
 
         $cache = $this->get_cache($cache_key);
         if ($cache) {
-            return $cache;
+            return $this->addNonce($cache, $site);
         }
 
         $response = json_decode($Meting->format()->album($album_id), true);
@@ -237,7 +243,7 @@ class HermitJson
             }
 
             $this->set_cache($key, $album, 24);
-            return $album;
+            return $this->addNonce($album, $site);
         }
 
         return false;
@@ -250,7 +256,7 @@ class HermitJson
 
         $cache = $this->get_cache($cache_key);
         if ($cache) {
-            return $cache;
+            return $this->addNonce($cache, $site);
         }
 
         $response = json_decode($Meting->format()->playlist($playlist_id), true);
@@ -298,22 +304,38 @@ class HermitJson
             }
 
             $this->set_cache($cache_key, $playlist, 24);
-            return $playlist;
+            return $this->addNonce($playlist, $site);
         }
 
         return false;
     }
 
-    public function curl($API){
+    private function addNonce($data, $site, $single = false)
+    {
+        if ($single) {
+            $data['url'] = $data['url'] . "&_nonce=".wp_create_nonce($site . "_song_url#:".$data['id']);
+            $data['pic'] = $data['pic'] . "&_nonce=".wp_create_nonce($site . "_pic_url#:".$data['id']);
+        } else {
+            foreach ($data["songs"] as $key => $value) {
+                $data["songs"][$key]['url'] = $value['url'] . "&_nonce=".wp_create_nonce($site . "_song_url#:".$value['id']);
+                $data["songs"][$key]['pic'] = $value['pic'] . "&_nonce=".wp_create_nonce($site . "_pic_url#:".$value['id']);
+            }
+        }
+        return $data;
+    }
 
+    public function curl($API)
+    {
         $curl=curl_init();
-        if(isset($API['body']))$API['url']=$API['url'].'?'.http_build_query($API['body']);
-        curl_setopt($curl,CURLOPT_URL,$API['url']);
-        curl_setopt($curl,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($curl,CURLOPT_CONNECTTIMEOUT,10);
-        curl_setopt($curl,CURLOPT_COOKIE,$API['cookie']);
-        curl_setopt($curl,CURLOPT_REFERER,$API['referer']);
-        curl_setopt($curl,CURLOPT_USERAGENT,$API['useragent']);
+        if (isset($API['body'])) {
+            $API['url']=$API['url'].'?'.http_build_query($API['body']);
+        }
+        curl_setopt($curl, CURLOPT_URL, $API['url']);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($curl, CURLOPT_COOKIE, $API['cookie']);
+        curl_setopt($curl, CURLOPT_REFERER, $API['referer']);
+        curl_setopt($curl, CURLOPT_USERAGENT, $API['useragent']);
 
         $result=curl_exec($curl);
         curl_close($curl);
@@ -371,7 +393,7 @@ class HermitJson
             'albumSource' => 0,
             'debug' => 0,
             'advanced_cache' => 0,
-            'within_China' => 1,
+            'netease_cookies'=> '',
         );
 
         $settings = $this->_settings;
