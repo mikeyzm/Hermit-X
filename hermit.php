@@ -18,7 +18,6 @@ global $HMT, $HMTJSON;
 
 require HERMIT_PATH . '/class.json.php';
 require HERMIT_PATH . '/class.hermit.php';
-require HERMIT_PATH . '/class.update.php';
 
 if (!isset($HMT)) {
     $HMT = new hermit();
@@ -26,10 +25,6 @@ if (!isset($HMT)) {
 
 if (!isset($HMTJSON)) {
     $HMTJSON = new HermitJson();
-}
-
-if (!isset($hmt_update)) {
-    $hmt_update = new Hermit_Update();
 }
 
 /**
