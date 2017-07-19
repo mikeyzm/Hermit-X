@@ -70,6 +70,7 @@ class hermit {
 	}
 
 	/**
+	 * @deprecated since modified
 	 * 载入所需要的CSS和js文件
 	 */
 	public function hermit_scripts() {
@@ -494,19 +495,25 @@ class hermit {
 	}
 
 	private function music_remote( $ids ) {
-		global $wpdb, $hermit_table_name;
+		$result      = [];
+		$attachments = get_posts( [
+			'post_type'      => 'attachment',
+			'numberposts'    => - 1,
+			'post_status'    => 'any',
+			'post_parent'    => null,
+			'post__in'       => [ $ids ],
+			'post_mime_type' => 'audio'
+		] );
 
-		$result = array();
-		$data   = $wpdb->get_results( "SELECT id,song_name,song_author,song_url FROM {$hermit_table_name} WHERE id in ({$ids})" );
-
-		foreach ( $data as $key => $value ) {
-			$result['songs'][] = array(
-				"title"  => $value->song_name,
-				"author" => $value->song_author,
-				"url"    => $value->song_url,
-				"pic"    => "",
-				"lrc"    => ""
-			);
+		foreach ( $attachments as $attachment ) {
+			$data              = wp_get_attachment_metadata( $attachment->ID );
+			$result['songs'][] = [
+				"title"  => $data['title'],
+				"author" => $data['artist'],
+				"url"    => wp_get_attachment_url( $attachment->ID ),
+				"pic"    => get_the_post_thumbnail_url( $attachment->ID ),
+				"lrc"    => ''
+			];
 		}
 
 		return $result;
