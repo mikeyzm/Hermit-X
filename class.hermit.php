@@ -104,62 +104,50 @@ class hermit {
 		return ++ self::$playerID;
 	}
 
+
 	/**
-	 * 添加文章短代码
+	 * @param $atts
+	 * @param null $content
+	 *
+	 * @return string
 	 */
 	public function shortcode( $atts, $content = null ) {
-		if ( empty( $atts["theme"] ) ) {
-			$color = $this->settings( 'color' );
-		} else {
-			$color = $atts["theme"];
-		}
-		switch ( $color ) {
-			case 'default':
-				$color = "#5895be";
-				break;
-			case 'red':
-				$color = "#dd4b39";
-				break;
-			case 'blue':
-				$color = "#5cb85c";
-				break;
-			case 'yellow':
-				$color = "#f0ad4e";
-				break;
-			case 'pink':
-				$color = "#f489ad";
-				break;
-			case 'purple':
-				$color = "#da70d6";
-				break;
-			case 'black':
-				$color = "#aaaaaa";
-				break;
-			case 'customize':
-				$color = $this->settings( 'color_customize' );
-				break;
-			default:
-				break;
-		}
-		$atts["theme"]       = $color;
-		$atts["songs"]       = $content;
-		$atts["_nonce"]      = wp_create_nonce( $content );
 		$playlist_max_height = $this->settings( 'playlist_max_height' );
-		if ( $playlist_max_height != 0 && empty( $atts["listmaxheight"] ) ) {
-			$atts["listmaxheight"] = $playlist_max_height . "px";
-		}
-		$keys   = array_keys( $atts );
-		$apatts = "";
-		foreach ( $keys as $value ) {
-			if ( $value == "auto" ) {
-				$apatts = $apatts . 'data-autoplay="' . ( ( $atts[ $value ] == 1 ) ? "true" : "false" ) . '" ';
-				continue;
-			}
-
-			$apatts = $apatts . 'data-' . $value . '="' . $atts[ $value ] . '" ';
+		if ( $playlist_max_height != 0 && empty( $atts['listmaxheight'] ) ) {
+			$atts['listmaxheight'] = $playlist_max_height . 'px';
 		}
 
-		return '<!-Hermit X v' . HERMIT_VERSION . ' start--><div id="aplayer' . self::getUniqueId() . '" class="aplayer" ' . $apatts . '></div><!--Hermit X v' . HERMIT_VERSION . ' end-->';
+		$temp = explode( '#:', $content );
+
+		// old version compatibility
+		if ( empty( $atts['autoplay'] ) ) {
+			$atts['autoplay'] = $atts['auto'] ? 'true' : 'false';
+		}
+		if ( empty( $atts['mode'] ) ) {
+			$atts['mode'] = $atts['loop'] ? 'circulation' : 'order';
+		}
+		if ( empty( $atts['preload'] ) ) {
+			$atts['preload'] = 'auto';
+		}
+
+		$result = [
+			'scope'         => $temp[0],
+			'id'            => $temp[1],
+			'autoplay'      => $atts['autoplay'],
+			'theme'         => $this->settings( 'color_customize' ),
+			'listmaxheight' => $atts['listmaxheight'],
+			'mode'          => $atts['mode'],
+			'preload'       => $atts['preload'],
+			'_nonce'        => wp_create_nonce( $content )
+		];
+
+		$final = '';
+		foreach ( $result as $k => $v ) {
+			$filter = is_numeric( $v ) ? ' :' : ' ';
+			$final  = $final . $filter . $k . '="' . $v . '"';
+		}
+
+		return '<player' . $final . '></player>';
 	}
 
 	/**
