@@ -25,10 +25,6 @@ class hermit {
 			$this,
 			'page_init'
 		) );
-		add_action( 'wp_enqueue_scripts', array(
-			$this,
-			'hermit_scripts'
-		) );
 		add_filter( 'plugin_action_links', array(
 			$this,
 			'plugin_action_link'
