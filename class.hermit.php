@@ -143,7 +143,7 @@ class hermit {
 
 		$final = '';
 		foreach ( $result as $k => $v ) {
-			$filter = is_numeric( $v ) ? ' :' : ' ';
+			$filter = is_numeric( $v ) || rest_is_boolean( $v ) ? ' :' : ' ';
 			$final  = $final . $filter . $k . '="' . $v . '"';
 		}
 
