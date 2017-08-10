@@ -45,10 +45,6 @@ class hermit {
 			$this,
 			'hermit_source_callback'
 		) );
-		add_action( 'wp_footer', array(
-			$this,
-			'aplayer_init'
-		) );
 		add_filter( 'clean_url', array(
 			$this,
 			'add_async_forscript'
