@@ -137,7 +137,7 @@ class HermitJson {
 
 		if ( ! empty( $response[0]["id"] ) ) {
 			//处理音乐信息
-			$mp3_url    = admin_url() . "admin-ajax.php" . "?action=hermit&scope=" . $site . "_song_url&id=" . $response[0]['url_id'];
+			$mp3_url    = rest_url('moon/v1/music') . "?scope=" . $site . "_song_url&id=" . $response[0]['url_id'];
 			$music_name = $response[0]['name'];
 			if ( $site == 'baidu' ) {
 				$pic = json_decode( $Meting->pic( $response[0]['pic_id'] ), true );
@@ -147,7 +147,7 @@ class HermitJson {
 					$cover = $pic["url"];
 				}
 			} else {
-				$cover = admin_url() . "admin-ajax.php" . "?action=hermit&scope=" . $site . "_pic_url&picid=" . $response[0]['pic_id'] . '&id=' . $music_id;
+				$cover = rest_url('moon/v1/music') . "?scope=" . $site . "_pic_url&picid=" . $response[0]['pic_id'] . '&id=' . $music_id;
 			}
 			$artists = $response[0]['artist'];
 			$artists = implode( ",", $artists );
@@ -217,7 +217,7 @@ class HermitJson {
 
 
 			foreach ( $result as $k => $value ) {
-				$mp3_url = admin_url() . "admin-ajax.php" . "?action=hermit&scope=" . $site . "_song_url&id=" . $value["url_id"];
+				$mp3_url = rest_url('moon/v1/music') . "?scope=" . $site . "_song_url&id=" . $value["url_id"];
 				if ( $site == 'baidu' ) {
 					$pic = json_decode( $Meting->pic( $value['pic_id'] ), true );
 					if ( empty( $pic["url"] ) ) {
@@ -226,7 +226,7 @@ class HermitJson {
 						$cover = $pic["url"];
 					}
 				} else {
-					$cover = admin_url() . "admin-ajax.php" . "?action=hermit&scope=" . $site . "_pic_url&picid=" . $value['pic_id'] . '&id=' . $value['id'];
+					$cover = rest_url('moon/v1/music') . "?scope=" . $site . "_pic_url&picid=" . $value['pic_id'] . '&id=' . $value['id'];
 				}
 				$album["songs"][] = array(
 					"id"     => $value["id"],
@@ -238,7 +238,7 @@ class HermitJson {
 				);
 			}
 
-			$this->set_cache( $key, $album, 24 );
+			$this->set_cache( $cache_key, $album, 24 );
 
 			return $this->addNonce( $album, $site );
 		}
@@ -273,7 +273,7 @@ class HermitJson {
 			);
 
 			foreach ( $result as $k => $value ) {
-				$mp3_url = admin_url() . "admin-ajax.php" . "?action=hermit&scope=" . $site . "_song_url&id=" . $value["url_id"];
+				$mp3_url = rest_url('moon/v1/music') . "?scope=" . $site . "_song_url&id=" . $value["url_id"];
 				$artists = $value["artist"];
 
 				$artists = implode( ",", $artists );
@@ -286,7 +286,7 @@ class HermitJson {
 						$cover = $pic["url"];
 					}
 				} else {
-					$cover = admin_url() . "admin-ajax.php" . "?action=hermit&scope=" . $site . "_pic_url&picid=" . $value['pic_id'] . '&id=' . $value['id'];
+					$cover = rest_url('moon/v1/music') . "?scope=" . $site . "_pic_url&picid=" . $value['pic_id'] . '&id=' . $value['id'];
 				}
 
 				$playlist["songs"][] = array(

@@ -29,13 +29,9 @@ class hermit {
 			$this,
 			'plugin_action_link'
 		), 10, 4 );
-		add_action( 'wp_ajax_nopriv_hermit', array(
+		add_action( 'rest_api_init', array(
 			$this,
-			'hermit_callback'
-		) );
-		add_action( 'wp_ajax_hermit', array(
-			$this,
-			'hermit_callback'
+			'register_rest_route'
 		) );
 		add_action( 'in_admin_footer', array(
 			$this,
@@ -155,104 +151,82 @@ class hermit {
 		return $context;
 	}
 
-	public function nonce_verify() {
-		$result = wp_verify_nonce( $_REQUEST['_nonce'], $_GET['scope'] . '#:' . $_GET['id'] );
-		if ( ! $result ) {
-			header( 'HTTP/1.0 401 Unauthorized' );
-			header( 'Content-type: application/json;charset=UTF-8' );
-			$result = array(
-				'status' => 401,
-				'msg'    => $result
-			);
-			die( json_encode( $result ) );
-		}
-
-		return true;
-	}
+	public function register_rest_route() {
+        register_rest_route('moon/v1', '/music', [
+            [
+                'methods'             => \WP_REST_Server::READABLE,
+                'callback'            => [$this, 'hermit_callback'],
+            ]
+        ]);
+    }
 
 	/**
 	 * JSON 音乐数据
 	 */
-	public function hermit_callback() {
+	public function hermit_callback(WP_REST_Request $request) {
 		global $HMTJSON;
 
-		if ( ! empty( $_SERVER["HTTP_REFERER"] ) ) {
-			$referer = parse_url( $_SERVER["HTTP_REFERER"] );
-			$host    = strtolower( $referer['host'] );
-		}
-		if ( empty( $_SERVER["HTTP_REFERER"] ) || $host === parse_url( home_url() )['host'] ) {
-			$scope = $_GET['scope'];
-			$id    = $_GET['id'];
+        $scope = $request->get_param('scope');
+        $id    = $request->get_param('id');
 
-			switch ( $scope ) {
-				//本地音乐部分
-				case 'remote':
-					$this->nonce_verify();
-					$result = array(
-						'status' => 200,
-						'msg'    => $this->music_remote( $id )
-					);
-					break;
+        switch ( $scope ) {
+            //本地音乐部分
+            case 'remote':
+                $result = array(
+                    'status' => 200,
+                    'msg'    => $this->music_remote( $id )
+                );
+                break;
 
-				//默认路由
-				default:
-					$re = '/^(?<site>(netease|xiami|tencent|kugou|baidu)?)_?(?<scope>songs|songlist|album|playlist|collect|artist|song_url|pic_url|id_parse)$/i';
-					preg_match( $re, $scope, $matches );
-					if ( ! empty( $matches['scope'] ) ) {
-						$scope = $matches['scope'];
-						if ( empty( $matches['site'] ) ) {
-							$site = 'xiami';
-						} else {
-							$site = $matches['site'];
-						}
-						if ( $scope === 'songs' ) {
-							$scope = 'songlist';
-						} elseif ( $scope === 'collect' ) {
-							$scope = 'playlist';
-						}
-						if ( method_exists( $HMTJSON, $scope ) ) {
-							if ( $scope === 'pic_url' ) {
-								$this->nonce_verify();
-								$result = array(
-									'status' => 200,
-									'msg'    => $HMTJSON->$scope( $site, $id, $_GET['picid'] )
-								);
-							} elseif ( $scope === 'id_parse' ) {
-								$result = array(
-									'status' => 200,
-									'msg'    => $HMTJSON->$scope( $site, explode( ',', $_GET['src'] ) )
-								);
-							} else {
-								$this->nonce_verify();
-								$result = array(
-									'status' => 200,
-									'msg'    => $HMTJSON->$scope( $site, $id )
-								);
-							}
-						} else {
-							$result = array(
-								'status' => 400,
-								'msg'    => null
-							);
-						}
-					} else {
-						$result = array(
-							'status' => 400,
-							'msg'    => null
-						);
-					}
-			}
-		} else {
-			$result = array(
-				'status' => 401,
-				'msg'    => null
-			);
-		}
-
+            //默认路由
+            default:
+                $re = '/^(?<site>(netease|xiami|tencent|kugou|baidu)?)_?(?<scope>songs|songlist|album|playlist|collect|artist|song_url|pic_url|id_parse)$/i';
+                preg_match( $re, $scope, $matches );
+                if ( ! empty( $matches['scope'] ) ) {
+                    $scope = $matches['scope'];
+                    if ( empty( $matches['site'] ) ) {
+                        $site = 'xiami';
+                    } else {
+                        $site = $matches['site'];
+                    }
+                    if ( $scope === 'songs' ) {
+                        $scope = 'songlist';
+                    } elseif ( $scope === 'collect' ) {
+                        $scope = 'playlist';
+                    }
+                    if ( method_exists( $HMTJSON, $scope ) ) {
+                        if ( $scope === 'pic_url' ) {
+                            $result = array(
+                                'status' => 200,
+                                'msg'    => $HMTJSON->$scope( $site, $id, $_GET['picid'] )
+                            );
+                        } elseif ( $scope === 'id_parse' ) {
+                            $result = array(
+                                'status' => 200,
+                                'msg'    => $HMTJSON->$scope( $site, explode( ',', $_GET['src'] ) )
+                            );
+                        } else {
+                            $result = array(
+                                'status' => 200,
+                                'msg'    => $HMTJSON->$scope( $site, $id )
+                            );
+                        }
+                    } else {
+                        $result = array(
+                            'status' => 400,
+                            'msg'    => null
+                        );
+                    }
+                } else {
+                    $result = array(
+                        'status' => 400,
+                        'msg'    => null
+                    );
+                }
+        }
 
 		//输出 JSON
-		header( 'Content-type: application/json;charset=UTF-8' );
-		exit( json_encode( $result ) );
+		return $result;
 	}
 
 	/**
